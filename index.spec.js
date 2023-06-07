@@ -58,9 +58,9 @@ describe.each([['presto'], ['trino']])('%s', function(engine){
   });
 });
 
-describe('non-200 codes', function(){
-  describe('retry logic for 50x errors', function(){
-    describe.each([502, 503, 504])('retry logic for %i', function(statusCode){
+describe('when server returns non-200 response', function(){
+  describe('the client should retry for 50x code', function(){
+    describe.each([502, 503, 504])('the client retries for %i code', function(statusCode){
       var responses = {
         '/v1/statement': {
             "stats": {
@@ -86,14 +86,14 @@ describe('non-200 codes', function(){
 
       beforeAll(function(done) {
         server = http.createServer(function(req, res){
-          if (count % 5 === 0) {
-            count++;
+          if (count % 2 === 0) {
             res.statusCode = statusCode;
           } else {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.write(JSON.stringify(responses[req.url]));
           }
+          count++;
           res.end();
         });
         server.listen(8111, function(){
@@ -111,7 +111,8 @@ describe('non-200 codes', function(){
         });
       });
 
-      test('that client retries', function(done){
+      test('the client returns success', function(done){
+        expect.assertions(7);
         var client = new Client({
           host: 'localhost',
           port: 8111,
@@ -124,6 +125,10 @@ describe('non-200 codes', function(){
             expect(columns).toHaveLength(1);
             expect(columns[0]).toEqual(expect.objectContaining({ name: 'col', type: 'integer' }));
           },
+          retry: function(){
+            // this should be called twice
+            expect(true).toBe(true);
+          },
           callback: function(error){
             expect(error).toBeNull();
             done();
@@ -133,8 +138,8 @@ describe('non-200 codes', function(){
     });
   });
 
-  describe.each([404, 500])('query errors for %i code', function(statusCode){
-    describe.each([0, 1])('fail after %i requests', function(failAfter){
+  describe.each([404, 500])('the client fails for %i code', function(statusCode){
+    describe.each([0, 1])('the client fails after %i requests', function(failAfter){
       var responses = {
         '/v1/statement': {
             "stats": {
@@ -185,7 +190,8 @@ describe('non-200 codes', function(){
         });
       });
 
-      test('that client errors', function(done){
+      test('the client returns error', function(done){
+        expect.assertions(1);
         var client = new Client({
           host: 'localhost',
           port: 8111,
@@ -196,7 +202,7 @@ describe('non-200 codes', function(){
             done('should not have data');
           },
           callback: function(error){
-            const errorObj = new Error('HTTP error ' + statusCode);
+            const errorObj = new Error('execution error: could not parse response');
             expect(error).toEqual(failAfter === 0 ? {
               "code": statusCode,
               "error": errorObj,
