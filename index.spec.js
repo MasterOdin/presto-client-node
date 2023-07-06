@@ -215,3 +215,46 @@ describe('when server returns non-200 response', function(){
     });
   });
 });
+
+describe('when timeout is set', function() {
+  var server;
+
+  beforeAll(function(done) {
+    server = http.createServer(function(req, res){
+      res.statusCode = 502;
+      res.end();
+    });
+    server.listen(8111, function(){
+      done();
+    });
+  });
+
+  afterAll(function(done){
+    server.close(function(){
+      done();
+    });
+  });
+
+  test('the query times out', function(done) {
+    expect.assertions(1);
+    var client = new Client({
+      host: 'localhost',
+      port: 8111,
+      timeout: 5,
+    });
+    client.execute({
+      query: 'SELECT 1 AS col',
+      timeout: 1,
+      data: function(){
+        done('no data should be returned');
+      },
+      error: function(error){
+        expect(error).toEqual({"message": "execution error: query timed out"});
+        done();
+      },
+      success: function(){
+        done('success should not have been called');
+      },
+    });
+  });
+});
