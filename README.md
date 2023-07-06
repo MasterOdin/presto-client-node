@@ -76,7 +76,7 @@ Instanciate client object and set default configurations.
     * Change headers set. Added for compatibility with Trino.
     * Available options: presto, trino (default: presto)
   * timeout [integer :optional]
-    * The seconds that a query is allowed to run before it starts returning results, defaults to 60 seconds
+    * The seconds that a query is allowed to run before it starts returning results, defaults to 60 seconds. Set to `null` or `0` to disable.
 
 return value: client instance object
 
