@@ -240,7 +240,7 @@ describe('when timeout is set', function() {
     var client = new Client({
       host: 'localhost',
       port: 8111,
-      timeout: 5,
+      timeout: 2,
     });
     client.execute({
       query: 'SELECT 1 AS col',
