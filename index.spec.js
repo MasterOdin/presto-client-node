@@ -5,7 +5,7 @@ var http = require('http');
 var Client = require('./index').Client;
 
 test('cannot use basic and custom auth', function(){
-  expect(function() {
+  expect(function(){
     new Client({
       host: 'localhost',
       port: 8080,
@@ -202,7 +202,7 @@ describe('when server returns non-200 response', function(){
             done('should not have data');
           },
           callback: function(error){
-            const errorObj = new Error('execution error: could not parse response');
+            const errorObj = new Error('execution error: invalid response code (' + statusCode + ')');
             expect(error).toEqual(failAfter === 0 ? {
               "code": statusCode,
               "error": errorObj,
@@ -216,7 +216,51 @@ describe('when server returns non-200 response', function(){
   });
 });
 
-describe('when timeout is set', function() {
+describe('when server returns invalid json with 200 code', function(){
+  beforeAll(function(done) {
+    server = http.createServer(function(req, res){
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.write('this is invalid{json}');
+      res.end();
+    });
+    server.listen(8111, function(){
+      done();
+    });
+  });
+
+  afterAll(function(done){
+    server.close(function(){
+      done();
+    });
+  });
+  test('client returns error', function(done){
+    expect.assertions(1);
+    var client = new Client({
+      host: 'localhost',
+      port: 8111,
+    });
+    client.execute({
+      query: 'SELECT 1',
+      data: function(){
+        done('no data should have been returned');
+      },
+      error: function(error){
+        expect(error).toEqual({
+          code: 200,
+          error: new Error("execution error: could not parse response"),
+          message: "execution error:this is invalid{json}"
+        });
+        done();
+      },
+      success: function(){
+        done('success should not have been called');
+      },
+    });
+  });
+});
+
+describe('when timeout is set', function(){
   var server;
 
   beforeAll(function(done) {
