@@ -59,28 +59,28 @@ describe.each([['presto'], ['trino']])('%s', function(engine){
 });
 
 describe('when server returns non-200 response', function(){
+  var responses = {
+    '/v1/statement': {
+        "stats": {
+            "state": "QUEUED",
+        },
+        "nextUri": "http://localhost:8111/v1/statement/20140120_032523_00000_32v8g/1",
+        "infoUri": "http://localhost:8111/v1/query/20140120_032523_00000_32v8g",
+        "id": "20140120_032523_00000_32v8g",
+    },
+    '/v1/statement/20140120_032523_00000_32v8g/1': {
+      "stats": {
+          "state": "FINISHED",
+      },
+      "columns": [ { "type": "integer", "name": "col" } ],
+      "data": [ [ 1 ] ],
+      "infoUri": "http://localhost:8111/v1/query/20140120_032523_00000_32v8g",
+      "id": "20140120_032523_00000_32v8g"
+    }
+  };
+
   describe('the client should retry for 50x code', function(){
     describe.each([502, 503, 504])('the client retries for %i code', function(statusCode){
-      var responses = {
-        '/v1/statement': {
-            "stats": {
-                "state": "QUEUED",
-            },
-            "nextUri": "http://localhost:8111/v1/statement/20140120_032523_00000_32v8g/1",
-            "infoUri": "http://localhost:8111/v1/query/20140120_032523_00000_32v8g",
-            "id": "20140120_032523_00000_32v8g",
-        },
-        '/v1/statement/20140120_032523_00000_32v8g/1': {
-          "stats": {
-              "state": "FINISHED",
-          },
-          "columns": [ { "type": "integer", "name": "col" } ],
-          "data": [ [ 1 ] ],
-          "infoUri": "http://localhost:8111/v1/query/20140120_032523_00000_32v8g",
-          "id": "20140120_032523_00000_32v8g"
-        }
-      };
-
       var server;
       var count;
 
@@ -132,6 +132,55 @@ describe('when server returns non-200 response', function(){
           callback: function(error){
             expect(error).toBeNull();
             done();
+          },
+        });
+      });
+    });
+
+    describe('when more retries than max retries happen', function(done){
+      var server;
+      beforeAll(function(done) {
+        server = http.createServer(function(req, res){
+          if (req.url === '/v1/statement') {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.write(JSON.stringify(responses[req.url]));
+          } else {
+            res.statusCode = 502;
+          }
+          res.end();
+        });
+        server.listen(8111, function(){
+          done();
+        });
+      });
+
+      afterAll(function(done){
+        server.close(function(){
+          done();
+        });
+      });
+      test('the client returns error after 6 retries', function(done) {
+        expect.assertions(1);
+        var client = new Client({
+          host: 'localhost',
+          port: 8111,
+        });
+        client.execute({
+          query: 'SELECT 1 AS col',
+          error: function(error){
+            expect(error).toEqual({
+              "code": 502,
+              "error": new Error("execution error: invalid response code (502)"),
+              "message": "query fetch failed due to 502 code after 5 retries",
+            });
+            done();
+          },
+          data: function(){
+            done('should not have data');
+          },
+          success: function(){
+            done('success should not have been called');
           },
         });
       });
@@ -284,6 +333,7 @@ describe('when timeout is set', function(){
     var client = new Client({
       host: 'localhost',
       port: 8111,
+      retries: 0,
       timeout: 2,
     });
     client.execute({

@@ -77,6 +77,8 @@ Instanciate client object and set default configurations.
     * Available options: presto, trino (default: presto)
   * timeout [integer :optional]
     * The seconds that a query is allowed to run before it starts returning results, defaults to 60 seconds. Set to `null` or `0` to disable.
+  * retries [integer :optional]
+    * Number of times to retry a 50x error before returning an error, defaults to 5. Set to `0` to disable.
 
 return value: client instance object
 
