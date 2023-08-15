@@ -64,7 +64,7 @@ describe.each([['presto'], ['trino']])('%s', function(engine){
       callback: function(error){
         expect(error).toEqual({
           code: 400,
-          error: new Error('execution error: invalid response code (400)'),
+          error: new Error('execution error:SQL statement is empty'),
           message: "execution error:SQL statement is empty",
         });
         done();
@@ -188,7 +188,7 @@ describe('when server returns non-200 response', function(){
           error: function(error){
             expect(error).toEqual({
               "code": 502,
-              "error": new Error("execution error: invalid response code (502)"),
+              "error": new Error("execution error:invalid response code (502)"),
               "message": "query fetch failed due to 502 code after 5 retries",
             });
             done();
@@ -268,7 +268,7 @@ describe('when server returns non-200 response', function(){
             done('should not have data');
           },
           callback: function(error){
-            const errorObj = new Error('execution error: invalid response code (' + statusCode + ')');
+            const errorObj = new Error('execution error:invalid response code (' + statusCode + ')');
             expect(error).toEqual(failAfter === 0 ? {
               "code": statusCode,
               "error": errorObj,
@@ -314,7 +314,7 @@ describe('when server returns invalid json with 200 code', function(){
       error: function(error){
         expect(error).toEqual({
           code: 200,
-          error: new Error("execution error: could not parse response"),
+          error: new Error("execution error:could not parse response"),
           message: "execution error:this is invalid{json}"
         });
         done();
