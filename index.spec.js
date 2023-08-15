@@ -56,7 +56,24 @@ describe.each([['presto'], ['trino']])('%s', function(engine){
       },
     });
   });
+
+  test('query with no text', function(done){
+    expect.assertions(1);
+    client.execute({
+      query: '',
+      callback: function(error){
+        expect(error).toEqual({
+          code: 400,
+          error: new Error('execution error: invalid response code (400)'),
+          message: "execution error:SQL statement is empty",
+        });
+        done();
+      },
+    });
+  });
 });
+
+
 
 describe('when server returns non-200 response', function(){
   var responses = {
