@@ -419,7 +419,6 @@ describe('redirect tests', function(){
     });
   });
 
-  /*
   describe('when using reverse proxy that does not forward protocol', function(){
     // The first request will go to https://localhost:443/v1/statement, but the
     // nextUri will respond with http://localhost/v1/statement/... where then
@@ -451,5 +450,4 @@ describe('redirect tests', function(){
       });
     }, 10000);
   });
-  */
 });
